@@ -1,0 +1,27 @@
+name: Bug report
+description: Something git why did wrong
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran and what it did.
+      placeholder: |
+        $ git why HEAD
+        ...
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: git and python version
+      placeholder: "git 2.45.0, python 3.12.3"
+    validations:
+      required: true

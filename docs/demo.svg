@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="356" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5">
+  <rect x="0.5" y="0.5" width="759" height="355" rx="10" fill="#0d1117" stroke="#30363d"/>
+  <circle cx="22" cy="22" r="6" fill="#ff5f56"/>
+  <circle cx="42" cy="22" r="6" fill="#ffbd2e"/>
+  <circle cx="62" cy="22" r="6" fill="#27c93f"/>
+  <text x="380" y="26" fill="#6e7681" text-anchor="middle">git-why</text>
+  <line x1="0" y1="44" x2="760" y2="44" stroke="#21262d"/>
+  <g fill="#c9d1d9">
+    <text x="20" y="72"><tspan fill="#7ee787">$</tspan> <tspan fill="#e6edf3">git why HEAD</tspan></text>
+    <text x="20" y="100"><tspan fill="#d29922">commit 014a927</tspan>  2026&#8209;09&#8209;07 21:27  Lucia Adams</text>
+    <text x="20" y="120" fill="#8b949e">Add breed filter to cat-finder</text>
+
+    <text x="20" y="156"><tspan fill="#3fb950" font-weight="bold">why</tspan>  Let users narrow cat results by breed</text>
+    <text x="20" y="180"><tspan fill="#6e7681">| prompt    </tspan> add a dropdown that filters the cat list by breed via the API</text>
+    <text x="20" y="202"><tspan fill="#6e7681">| rationale </tspan> client&#8209;side filter on the already&#8209;fetched list; breed list is tiny</text>
+    <text x="20" y="224"><tspan fill="#6e7681">| rejected  </tspan> server&#8209;side query per breed &#8212; extra requests, no combined filter</text>
+    <text x="20" y="246"><tspan fill="#6e7681">| spec      </tspan> SPEC.md#R4</text>
+    <text x="20" y="268"><tspan fill="#6e7681">| agent     </tspan> claude-sonnet-5</text>
+    <text x="20" y="290"><tspan fill="#6e7681">| session   </tspan> cat-finder-filters</text>
+
+    <text x="20" y="326"><tspan fill="#7ee787">$</tspan> <tspan fill="#8b949e">_</tspan></text>
+  </g>
+</svg>
