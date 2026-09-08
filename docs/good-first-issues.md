@@ -1,3 +1,7 @@
+---
+sitemap: false
+---
+
 # Ready-to-paste "good first issue" tickets
 
 Create these as GitHub issues and add the `good first issue` label. Each is
