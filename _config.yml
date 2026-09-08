@@ -1,6 +1,7 @@
 # GitHub Pages (Jekyll) — renders README.md as an indexable HTML page with
 # proper <title>, meta description and Open Graph tags via jekyll-seo-tag.
 title: git why
+tagline: record why each commit exists, as git trailers
 description: >-
   A Git subcommand that records why each commit exists — as native git trailers,
   so the reasoning survives clone and push and shows up in git log. Built for
