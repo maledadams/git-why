@@ -22,6 +22,9 @@ git init -q
 git config user.email t@example.com
 git config user.name Tester
 
+# --- version ---------------------------------------------------------------
+gw --version | grep -qE "^git why [0-9]+\.[0-9]+" || fail "git why --version"
+
 # --- default (substantial) enforcement -----------------------------------
 gw init >/dev/null
 [ "$(git config --get why.strict)" = "substantial" ] || fail "default level not substantial"

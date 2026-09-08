@@ -18,6 +18,8 @@ import subprocess
 import sys
 from fnmatch import fnmatch
 
+__version__ = "0.1.0"  # single source of truth; keep in sync with pyproject.toml
+
 KEYS = ["Why", "Why-Prompt", "Why-Rationale", "Why-Alternatives",
         "Why-Spec", "Why-Agent", "Why-Session", "Why-Confidence"]
 LABEL = {"Why-Prompt": "prompt", "Why-Rationale": "rationale",
@@ -413,6 +415,9 @@ def cmd_init(args):
 
 def main():
     argv = sys.argv[1:]
+    if argv and argv[0] in ("-V", "--version"):
+        print(f"git why {__version__}")
+        return 0
     if not argv or argv[0] not in SUBCOMMANDS:
         if argv and argv[0] in ("-h", "--help"):
             return cmd_show("-h")
