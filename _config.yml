@@ -7,6 +7,10 @@ description: >-
   so the reasoning survives clone and push and shows up in git log. Built for
   AI-assisted development.
 theme: jekyll-theme-cayman
+
+# Google Search Console: use a URL-prefix property for https://maledadams.github.io/git-why/
+# then paste the "HTML tag" token here (jekyll-seo-tag emits the meta tag) and push.
+# google_site_verification: PASTE_TOKEN_HERE
 url: https://maledadams.github.io
 baseurl: /git-why
 plugins:
