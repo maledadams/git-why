@@ -21,60 +21,67 @@ cd "$tmp"
 git init -q
 git config user.email t@example.com
 git config user.name Tester
+big() { printf '%s line %s\n' "$1" $(seq 1 40) > "$1"; git add "$1"; }
 
 # --- version ---------------------------------------------------------------
 gw --version | grep -qE "^git why [0-9]+\.[0-9]+" || fail "git why --version"
 
-# --- default (substantial) enforcement -----------------------------------
+# ---- default: nudge (never blocks) -------------------------------------
 gw init >/dev/null
-[ "$(git config --get why.strict)" = "substantial" ] || fail "default level not substantial"
+[ "$(git config --get why.strict)" = "nudge" ] || fail "default level is not nudge"
 
-# a TRIVIAL change is allowed with no reason
-echo "hi" > README.md && git add README.md
-git commit -q -m "add readme" || fail "trivial commit was blocked"
+echo hi > README.md && git add README.md
+out=$(git commit -m "add readme" 2>&1) || fail "nudge blocked a trivial commit"
+if printf '%s' "$out" | grep -qi "git-why"; then fail "nudge nagged on a trivial change"; fi
 
-# a SUBSTANTIAL change with no reason is blocked
-printf 'line %s\n' $(seq 1 40) > big.py && git add big.py
-if git commit -q -m "add big.py" 2>/dev/null; then fail "substantial commit not blocked"; fi
+big core.py
+out=$(git commit -m "add core.py" 2>&1) || fail "nudge blocked a substantial commit"
+printf '%s' "$out" | grep -qi "no reason recorded" || fail "nudge printed no tip"
 
-# ... and allowed once a reason is given
-gw commit -m "add big.py" -b "core module every other file will import" \
-   --rationale "kept flat on purpose" --agent "claude-sonnet-5" --session "s1" >/dev/null
-git log -1 --format=%B | grep -q "^Why: core module" || fail "Why trailer missing"
+big helper.py
+gw commit -m "add helper.py" -b "split out of core.py so tests can import it alone" \
+   --agent "claude-sonnet-5" --session "s1" >/dev/null
+git log -1 --format=%B | grep -q "^Why: split out of core" || fail "reason not recorded"
 
-# a low-effort reason on a substantial change is blocked (echoes the subject)
-printf 'x %s\n' $(seq 1 40) > big2.py && git add big2.py
-if gw commit -m "add big2.py" -b "add big2.py" >/dev/null 2>&1; then fail "echo-subject reason accepted"; fi
-if gw commit -m "add big2.py" -b "updates" >/dev/null 2>&1; then fail "filler reason accepted"; fi
-gw commit -m "add big2.py" -b "second half of the core module, split for readability" >/dev/null
+# ---- --enforce: blocks substantial, still ignores trivial -------------
+gw init --enforce >/dev/null
+[ "$(git config --get why.strict)" = "substantial" ] || fail "--enforce did not set substantial"
 
-# Why-Skip lets a substantial change through and is recorded
-printf 'y %s\n' $(seq 1 40) > vendored.py && git add vendored.py
+big feature.py
+if git commit -m "add feature.py" >/dev/null 2>&1; then fail "enforce let a reasonless substantial commit through"; fi
+if gw commit -m "add feature.py" -b "add feature.py" >/dev/null 2>&1; then fail "reason echoing the subject was accepted"; fi
+if gw commit -m "add feature.py" -b "updates" >/dev/null 2>&1; then fail "filler reason was accepted"; fi
+gw commit -m "add feature.py" -b "the feature the whole task was about; entry point for the CLI" >/dev/null
+
+big vendored.py
 gw commit -m "vendor upstream helper" --skip "copied verbatim from upstream, not our code" >/dev/null
 git log -1 --format=%B | grep -q "^Why-Skip: copied verbatim" || fail "Why-Skip not recorded"
 
-# --- reader / log / export --------------------------------------------------
-gw HEAD~2 | grep -q "core module" || fail "git why <rev>"
-gw big.py | grep -q "core module" || fail "git why <path>"
-gw log | grep -q "core module" || fail "git why log"
-gw log --agent claude | grep -q "core module" || fail "git why log --agent"
+echo "more" >> README.md && git add README.md
+git commit -m "tweak readme" >/dev/null 2>&1 || fail "enforce blocked a trivial change"
+
+# ---- reader / log / export -------------------------------------------
+gw helper.py | grep -q "split out of core" || fail "git why <path>"
+gw log | grep -q "split out of core" || fail "git why log"
+gw log --agent claude | grep -q "split out of core" || fail "git why log --agent"
 gw log --agent nope | grep -q "no matching commits" || fail "git why log --agent filter"
 gw export | python3 -c "import sys,json; [json.loads(l) for l in sys.stdin if l.strip()]" \
   || fail "git why export is not valid NDJSON"
 gw export | grep -q '"why_agent": "claude-sonnet-5"' || fail "export missing why_agent"
 
-# --- CI check ------------------------------------------------------------
-gw check >/dev/null || fail "check should pass on clean history"
-printf 'z %s\n' $(seq 1 40) > sneaky.py && git add sneaky.py
-git commit -q -m "sneaky big change" --no-verify
-if gw check "HEAD~1..HEAD" >/dev/null 2>&1; then fail "check missed a substantial reasonless commit"; fi
+# ---- CI check ------------------------------------------------------------
+gw check --level nudge | grep -qi "not a CI gate" || fail "check --level nudge should no-op"
+gw check >/dev/null || fail "check should pass on clean history at substantial"
+big sneaky.py
+git commit -m "sneaky big change" --no-verify >/dev/null
+if gw check "HEAD~1..HEAD" >/dev/null 2>&1; then fail "check missed a reasonless substantial commit"; fi
 
-# --- level=all is stricter -------------------------------------------------
+# ---- --all is stricter than substantial -------------------------------
 other="$(mktemp -d)"; cd "$other"; git init -q
-git config user.email t@e.t; git config user.name T
+git config user.email a@a.a; git config user.name A
 gw init --all >/dev/null
 echo hi > a && git add a
-if git commit -q -m "tiny" 2>/dev/null; then fail "--all did not require a reason for a trivial change"; fi
+if git commit -m "tiny" >/dev/null 2>&1; then fail "--all did not require a reason on a trivial change"; fi
 rm -rf "$other"
 
 echo "SMOKE OK"
