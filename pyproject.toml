@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "git-why"
+version = "0.1.0"
+description = "git blame tells you who. git why tells you why."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Lucia Adams" }]
+keywords = ["git", "commit", "provenance", "ai", "agents", "trailers"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Topic :: Software Development :: Version Control :: Git",
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.urls]
+Homepage = "https://github.com/maledadams/git-why"
+Source = "https://github.com/maledadams/git-why"
+
+[project.scripts]
+git-why = "git_why:main"
+
+[tool.setuptools]
+py-modules = ["git_why"]
