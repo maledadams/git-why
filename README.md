@@ -50,7 +50,9 @@ git why commit -m "add breed filter" \
 git why HEAD                        # reasoning for a commit
 git why src/filter.ts              # reasoning for the last change to a file
 git why log --since "7 days ago"   # the reasoning trail
-git why check origin/main..HEAD    # CI gate: fail if a Why: is missing
+git why log --agent claude-sonnet-5
+git why export > reasons.ndjson    # every recorded reason, one JSON object per line
+git why check origin/main..HEAD    # CI gate (see "How much it enforces" below)
 ```
 
 You never *have* to use `git why commit` — a plain `git commit --trailer "Why: ..."` works
@@ -58,12 +60,12 @@ the same. The wrapper is just shorter.
 
 ## What gets stored
 
-Reasoning is stored as trailers on the commit message. One `Why:` per commit; the rest are
-optional.
+Reasoning is stored as trailers on the commit message. `Why:` is the one that matters; the
+rest are optional.
 
 | Trailer             | Meaning                                        |
 | ------------------- | ---------------------------------------------- |
-| `Why:`              | what this change is for **(required)**         |
+| `Why:`              | why this change exists                         |
 | `Why-Prompt:`       | the instruction that produced it               |
 | `Why-Rationale:`    | why this approach                              |
 | `Why-Alternatives:` | what was considered and rejected               |
@@ -71,23 +73,45 @@ optional.
 | `Why-Agent:`        | model + tool that wrote it                     |
 | `Why-Session:`      | id grouping commits from one work session      |
 | `Why-Confidence:`   | `low` / `medium` / `high` / `human-reviewed`   |
+| `Why-Skip:`         | this commit deliberately has no reason, and why |
 
 ## How it works
 
 - **Trailers, not a database.** Everything lives in the commit message's last paragraph,
   the same place as `Co-Authored-By:`. Nothing to host, nothing to sync.
-- **`git why init`** installs a `commit-msg` hook that rejects commits with no `Why:` while
-  `git config why.strict` is `true`. Turn it off any time with `git config why.strict false`.
-- **`git why check`** is the same rule for CI — run it on a PR range and it exits non-zero
-  if any commit is missing its reasoning.
+- **`git why export`** turns the whole history into NDJSON — one object per commit, every
+  `Why-*` field as a key. That's the point of a schema: you can filter and analyse it
+  (`--agent`, `--session`, `--spec` on `git why log`) instead of grepping prose.
+- **`git why check`** applies the same rule in CI.
+
+## How much it enforces
+
+`git why init` installs a `commit-msg` hook. `git config why.strict` controls it:
+
+| Level                       | A reason is required on…                                        |
+| --------------------------- | -------------------------------------------------------------- |
+| `substantial` *(default)*   | changes over ~15 non-generated lines whose subject isn't `chore/build/ci/revert/bump`. Lockfiles, `*.min.*`, snapshots don't count toward the size. |
+| `all`                       | every non-merge commit (`git why init --all`)                  |
+| `off`                       | nothing; the hook still lets you record reasons               |
+
+Tune the threshold with `git config why.threshold 30`, add ignore globs with
+`git config why.skip-paths "docs/*,*.md"`.
+
+When a reason *is* required, a weak one is rejected too — a `Why:` that just repeats the
+subject line, or is filler like `update` / `wip` / `fix`.
+
+Any single commit can opt out and say so: `git commit --trailer "Why-Skip: vendored, not our code"`.
 
 ## For AI agents
 
-Add one line to your agent's instructions:
+`git why agent-setup` prints a block to paste into `CLAUDE.md`, `.cursorrules`, or wherever
+your agent reads instructions. The gist:
 
-> Commit with `git why commit -m "<subject>" -b "<why this change exists>" --prompt "<the request>" --agent "<model>"`. Never use bare `git commit`.
+> Commit with `git why commit -m "<subject>" -b "<why this change exists>" --prompt "<the request>" --agent "<model>"`.
+> Write the reason yourself from the conversation — it's intent the user never has to type.
+> Trivial changes can use a bare `git commit`.
 
-The `commit-msg` hook is the backstop if it forgets.
+The hook is the backstop if the agent forgets on a change that mattered.
 
 ## Why not just keep the chat logs
 
@@ -97,13 +121,12 @@ shows it.
 
 ## Roadmap
 
-v1 is deliberately small. Planned next, roughly in order:
+Kept deliberately small. Planned next, roughly in order:
 
-- `git why export` — dump every record to NDJSON for analysis
 - git notes fallback for prompts too long to sit in a message
-- `--session` / `--spec` filters on `git why log`
 - an editor-time staging file so an agent can record intent before it commits
 - editor integrations (VS Code, Neovim) surfacing `git why` on the current line
+- `git why blame <file>` — blame, but the last column is the reason
 
 ## Contributing
 
