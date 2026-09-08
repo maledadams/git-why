@@ -40,7 +40,7 @@ Git picks it up as a subcommand automatically: `git why`.
 ## Quickstart
 
 ```bash
-git why init                        # install the enforcement hook (once per repo)
+git why init                        # install the hook (once per repo; tip-only, never blocks)
 
 git why commit -m "add breed filter" \
   -b "let users narrow cat results by breed" \
@@ -52,7 +52,7 @@ git why src/filter.ts              # reasoning for the last change to a file
 git why log --since "7 days ago"   # the reasoning trail
 git why log --agent claude-sonnet-5
 git why export > reasons.ndjson    # every recorded reason, one JSON object per line
-git why check origin/main..HEAD    # CI gate (see "How much it enforces" below)
+git why check origin/main..HEAD    # optional CI gate (see "How much it enforces")
 ```
 
 You never *have* to use `git why commit` — a plain `git commit --trailer "Why: ..."` works
@@ -86,21 +86,26 @@ rest are optional.
 
 ## How much it enforces
 
-`git why init` installs a `commit-msg` hook. `git config why.strict` controls it:
+**By default, nothing is blocked.** `git why init` installs a `commit-msg` hook that stays
+out of your way. `git config why.strict` sets how loud it is:
 
-| Level                       | A reason is required on…                                        |
-| --------------------------- | -------------------------------------------------------------- |
-| `substantial` *(default)*   | changes over ~15 non-generated lines whose subject isn't `chore/build/ci/revert/bump`. Lockfiles, `*.min.*`, snapshots don't count toward the size. |
-| `all`                       | every non-merge commit (`git why init --all`)                  |
-| `off`                       | nothing; the hook still lets you record reasons               |
+| Level                    | On a *substantial* change with no reason…                       |
+| ------------------------ | -------------------------------------------------------------- |
+| `nudge` *(default)*      | commit goes through; one line on stderr saying how to add a reason |
+| `substantial`            | commit is **blocked** until you add a reason (`git why init --enforce`) |
+| `all`                    | as above, on **every** non-merge commit (`git why init --all`) |
+| `off`                    | completely silent (`git why init --silent`)                    |
 
-Tune the threshold with `git config why.threshold 30`, add ignore globs with
-`git config why.skip-paths "docs/*,*.md"`.
+"Substantial" = more than ~15 non-generated lines, and the subject isn't
+`chore/build/ci/revert/bump`. Lockfiles, `*.min.*` and snapshots don't count toward the
+size. Trivial changes are never touched, at any level. Tune it:
+`git config why.threshold 30`, `git config why.skip-paths "docs/*,*.md"`.
 
-When a reason *is* required, a weak one is rejected too — a `Why:` that just repeats the
-subject line, or is filler like `update` / `wip` / `fix`.
+At the `substantial` / `all` levels a *weak* reason is rejected too — a `Why:` that just
+repeats the subject, or filler like `update` / `wip` / `fix`.
 
-Any single commit can opt out and say so: `git commit --trailer "Why-Skip: vendored, not our code"`.
+Any commit can opt out on purpose, and the reason for skipping is recorded:
+`git commit --trailer "Why-Skip: vendored, not our code"`.
 
 ## For AI agents
 
@@ -111,7 +116,8 @@ your agent reads instructions. The gist:
 > Write the reason yourself from the conversation — it's intent the user never has to type.
 > Trivial changes can use a bare `git commit`.
 
-The hook is the backstop if the agent forgets on a change that mattered.
+The default hook never blocks the agent — it just leaves a tip if a real change went in
+with no reason. Turn on `--enforce` once you trust the workflow.
 
 ## Why not just keep the chat logs
 

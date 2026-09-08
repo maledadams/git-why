@@ -68,8 +68,9 @@ Write the reason yourself, inferred from what the user is trying to achieve in
 the conversation - the point is to capture intent the user never has to type.
 Only ask them for it if their intent is genuinely ambiguous.
 
-For a genuinely trivial change (lockfile bump, typo, formatting) you may use a
-bare `git commit`; git-why only requires a reason on substantial changes.
+By default git-why never blocks a commit - it just prints a one-line tip if a
+non-trivial change has no reason. Still record one on anything that isn't
+trivial; a lockfile bump, a typo or a formatting-only change needs nothing.
 """
 
 
@@ -182,9 +183,10 @@ def why_quality_problem(why, subject):
 
 
 def enforcement_level():
-    v = (cfg("strict", "substantial") or "substantial").lower()
-    return {"true": "all", "false": "off", "no": "off", "0": "off",
-            "yes": "all", "1": "all", "": "substantial"}.get(v, v)
+    """off | nudge (default, never blocks) | substantial | all."""
+    v = (cfg("strict", "nudge") or "nudge").lower()
+    return {"true": "all", "false": "off", "no": "off", "0": "off", "yes": "all",
+            "1": "all", "": "nudge", "on": "substantial", "tip": "nudge"}.get(v, v)
 
 
 # --------------------------------------------------------------------------- #
@@ -284,8 +286,9 @@ def cmd_check(args):
     else:
         rng = ["-1", "HEAD"]
     level = args.level or enforcement_level()
-    if level == "off":
-        print("git why check: why.strict is off, nothing to enforce")
+    if level in ("off", "nudge"):
+        print(f"git why check: why.strict is '{level}' - not a CI gate. "
+              "pass --level substantial to check anyway.")
         return 0
     bad, checked = [], 0
     for rec in log_records(rng):
@@ -331,30 +334,37 @@ def cmd_check_msg(args):
     if "Why-Skip" in tr:
         return 0
     numstat = git("diff", "--cached", "--numstat", check=False)  # ponytail: approx for --amend
-    required = level == "all" or is_substantial(subject, numstat)
+    lines, _files = _size_from_numstat(numstat)
+    substantial = level == "all" or is_substantial(subject, numstat)
     why = tr.get("Why", "")
-    if not why:
-        if not required:
-            return 0
-        head = ("git-why: this is a substantial change with no 'Why:' trailer."
-                if level == "substantial"
-                else "git-why: no 'Why:' trailer.")
+    problem = why_quality_problem(why, subject) if why else None
+
+    if why and problem is None:      # a real reason is recorded - always fine
+        return 0
+    if not substantial:              # trivial change - never nag, whatever the level
+        return 0
+
+    if level == "nudge":             # default: let it through, leave a tip
         sys.stderr.write("\n".join([
-            "", head,
-            '  add one:  git why commit -m "..." -b "<why this change exists>"',
-            '  or:       git commit --trailer "Why: <reason>"',
-            '  skip it:  git commit --trailer "Why-Skip: <reason it needs none>"',
-            "  relax:    git config why.strict off", "", ""]))
-        return 1
-    problem = why_quality_problem(why, subject)
-    if problem and required:
-        sys.stderr.write("\n".join([
-            "", f"git-why: the 'Why:' trailer {problem}.",
-            f"  got:  {why}",
-            "  say why the change exists, not what it does. skip with Why-Skip: if it truly needs none.",
+            "",
+            f"git-why: no reason recorded for this ~{lines}-line change (allowed through).",
+            '  add one:  git commit --amend --trailer "Why: <why this change exists>"',
+            "  quiet:    git config why.strict off",
             "", ""]))
-        return 1
-    return 0
+        return 0
+
+    # level is 'substantial' or 'all' - block
+    if not why:
+        head = "git-why: substantial change with no 'Why:' trailer."
+    else:
+        head = f"git-why: the 'Why:' trailer {problem}.\n  got:  {why}"
+    sys.stderr.write("\n".join([
+        "", head,
+        '  add one:  git why commit -m "..." -b "<why this change exists>"',
+        '  skip one: git commit --trailer "Why-Skip: <reason it needs none>"',
+        "  relax:    git config why.strict nudge   (tip only, never blocks)",
+        "", ""]))
+    return 1
 
 
 def cmd_commit(args):
@@ -399,12 +409,14 @@ def cmd_init(args):
         open(path, "w").write("#!/bin/sh\n" + HOOK_FRAGMENT)
         print(f"installed {path}")
     os.chmod(path, os.stat(path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    level = "off" if args.no_strict else ("all" if args.all else "substantial")
+    level = ("all" if args.all else "substantial" if args.enforce
+             else "off" if args.silent else "nudge")
     git("config", "why.strict", level)
-    print(f"why.strict = {level}"
-          + ("   (every non-merge commit needs a reason)" if level == "all"
-             else "   (only substantial changes need a reason)" if level == "substantial"
-             else ""))
+    blurb = {"nudge": "one-line tip on a substantial reasonless commit, never blocks",
+             "substantial": "blocks a substantial commit with no / weak reason",
+             "all": "blocks every non-merge commit with no / weak reason",
+             "off": "silent"}[level]
+    print(f"why.strict = {level}   ({blurb})")
     if args.agent:
         git("config", "why.agent", args.agent)
         print(f"why.agent = {args.agent}")
@@ -437,7 +449,7 @@ def main():
 
     sp = sub.add_parser("check", help="fail if a commit that needs a reason lacks one")
     sp.add_argument("range", nargs="*")
-    sp.add_argument("--level", choices=["off", "substantial", "all"],
+    sp.add_argument("--level", choices=["off", "nudge", "substantial", "all"],
                     help="override why.strict for this run")
     sp.set_defaults(fn=cmd_check)
 
@@ -445,10 +457,13 @@ def main():
     sp.add_argument("file")
     sp.set_defaults(fn=cmd_check_msg)
 
-    sp = sub.add_parser("init", help="install the commit-msg enforcement hook")
+    sp = sub.add_parser("init", help="install the commit-msg hook (tip-only by default)")
     g = sp.add_mutually_exclusive_group()
-    g.add_argument("--all", action="store_true", help="require a reason on every commit")
-    g.add_argument("--no-strict", action="store_true", help="install hook, enforce nothing")
+    g.add_argument("--enforce", action="store_true",
+                   help="block substantial commits that have no / a weak reason")
+    g.add_argument("--all", action="store_true",
+                   help="block every non-merge commit that has no / a weak reason")
+    g.add_argument("--silent", action="store_true", help="install the hook but stay quiet")
     sp.add_argument("--agent", help="set why.agent (stamped on every git why commit)")
     sp.set_defaults(fn=cmd_init)
 
