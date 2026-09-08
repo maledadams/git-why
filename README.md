@@ -1,7 +1,7 @@
 <h1 align="center">git why</h1>
 
 <p align="center">
-  <strong><code>git blame</code> tells you <em>who</em>. <code>git why</code> tells you <em>why</em>.</strong>
+  <strong>Put the <em>why</em> in version control.</strong>
 </p>
 
 <p align="center">
@@ -151,9 +151,9 @@ message — so they live in the commit, survive `clone`/`push`, and show in `git
 
 ### How is git why different from git blame?
 
-`git blame` answers *who* changed a line and *when*. `git why` answers *why* the change was
-made. They're complementary: `git why <file>` shows the reasoning behind the last commit
-that touched that file.
+`git blame` attributes each line to the commit and author that last changed it — not the
+intent behind the change. `git why <file>` picks up where that stops: it shows the recorded
+reasoning for the last commit that touched the file.
 
 ### Where does git why store the reasoning?
 

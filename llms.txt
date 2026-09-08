@@ -18,7 +18,7 @@
 ## Commands
 
 - `git why <commit|path>` — show the recorded reasoning for a commit, or for the last
-  commit that changed a file (the `git blame` counterpart).
+  commit that changed a given file.
 - `git why log [range]` — timeline of recorded reasoning; filter with `--agent`,
   `--session`, `--spec`, `--since`.
 - `git why export [range]` — newline-delimited JSON, one object per commit, for analysis.
@@ -33,7 +33,8 @@
 
 ## How it compares
 
-- vs `git blame`: blame answers who and when; `git why` answers why.
+- vs `git blame`: blame attributes lines to authors and commits; `git why` records the
+  intent behind the change.
 - vs `git notes`: notes are not pushed or fetched by default and have no schema; `git why`
   uses trailers, which are part of the commit and travel automatically.
 - vs Conventional Commits: that standardizes the commit *type* (`feat:`, `fix:`), not the

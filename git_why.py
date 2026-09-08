@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """git why - recover the reasoning behind a commit.
 
-git blame tells you who. git why tells you why.
+Put the "why" in version control.
 
 Reasoning lives in git trailers on the commit message (Why:, Why-Prompt:,
 Why-Rationale: ...), so it travels with every clone, fetch and push and shows
