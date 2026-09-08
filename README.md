@@ -12,11 +12,15 @@
   <img alt="Python" src="https://img.shields.io/badge/python-3.8%2B-blue">
 </p>
 
-When you build software by directing an AI, the reasoning behind each change lives in a
-chat window that closes. Six months later the code is still there and the *why* is gone.
-`git why` keeps it — on the commit itself, as standard
-[git trailers](https://git-scm.com/docs/git-interpret-trailers), so it travels with every
-clone, fetch and push and shows up in plain `git log`.
+**`git why` is a Git subcommand that records why each commit exists** — as native
+[git trailers](https://git-scm.com/docs/git-interpret-trailers) on the commit message, so
+the reasoning travels with `git clone`, `git fetch` and `git push` and shows up in plain
+`git log`. No database, no service.
+
+When you build software by directing an AI, that reasoning otherwise lives in a chat window
+that closes. Six months later the code is still there and the *why* is gone. `git why`
+keeps the rationale, the prompt, and the rejected alternatives attached to the commit that
+they explain.
 
 <p align="center">
   <img src="docs/demo.svg" alt="git why HEAD showing the reasoning behind a commit" width="760">
@@ -124,6 +128,72 @@ with no reason. Turn on `--enforce` once you trust the workflow.
 Chat logs aren't attached to the code, aren't in the repo, don't survive a clone, and
 nobody greps them. A trailer is one line, lives on the commit, and `git log` already
 shows it.
+
+## How git why compares
+
+| Approach | In the repo | Survives clone / push | Structured & queryable | Per-commit | Enforceable |
+| --- | :-: | :-: | :-: | :-: | :-: |
+| **git why** (trailers) | yes | yes | yes — `export`, `log` filters | yes | yes (opt-in) |
+| `git notes` | yes | **no** (not pushed by default) | no | yes | no |
+| Conventional Commits | yes | yes | commit *type* only, not the reason | yes | via commitlint |
+| ADRs (markdown files) | yes | yes | yes | no — project-level | no |
+| Chat / agent session logs | no | no | no | loosely | no |
+| Prose in the commit body | yes | yes | `git log \| grep` only | yes | no |
+
+## FAQ
+
+### What is git why?
+
+`git why` is a small Git subcommand that records **why** each commit exists. The reason,
+the prompt that produced the change, the approach taken and the alternatives rejected are
+stored as [git trailers](https://git-scm.com/docs/git-interpret-trailers) on the commit
+message — so they live in the commit, survive `clone`/`push`, and show in `git log`.
+
+### How is git why different from git blame?
+
+`git blame` answers *who* changed a line and *when*. `git why` answers *why* the change was
+made. They're complementary: `git why <file>` shows the reasoning behind the last commit
+that touched that file.
+
+### Where does git why store the reasoning?
+
+In the commit message itself, as `Key: value` trailers (`Why:`, `Why-Rationale:`,
+`Why-Agent:`, …), the same mechanism as `Co-Authored-By:` and `Signed-off-by:`. There is
+no database, no server, and nothing to keep in sync.
+
+### How is this different from git notes?
+
+`git notes` attach data to a commit but are **not pushed or fetched by default**, have no
+schema, and no tooling around them. `git why` uses trailers, which are part of the commit
+and travel automatically, and adds a reader, filters, an NDJSON `export`, and an optional
+enforcement hook.
+
+### Does git why work with any AI coding agent?
+
+Yes. `git why agent-setup` prints an instruction block to paste into Claude Code, Cursor,
+Aider, or any agent's config. Any tool that runs `git commit` can record a reason.
+
+### Does git why send my data anywhere?
+
+No. It shells out to your local `git` and nothing else — no network calls, no telemetry.
+Your commit messages never leave your machine.
+
+### Does it change my commit workflow?
+
+No. Plain `git commit --trailer "Why: …"` works; `git why commit` is just a shorter way to
+type it. The hook installed by `git why init` only prints a one-line tip by default —
+`--enforce` makes it block.
+
+### Can I enforce a reason in CI?
+
+Yes: `git why check <range> --level substantial` exits non-zero if a non-trivial commit in
+the range has no reason (or a lazy one). Trivial diffs — lockfile bumps, typos — are
+ignored.
+
+### What repos and languages does it support?
+
+Any Git repository, any language — it only reads commit metadata. It needs `git` 2.32+ and
+Python 3.8+, and is a single file with zero dependencies.
 
 ## Roadmap
 

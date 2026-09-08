@@ -1,0 +1,49 @@
+# git why
+
+> `git why` is a Git subcommand that records why each commit exists. It stores the
+> reasoning as native git trailers (`Why:`, `Why-Prompt:`, `Why-Rationale:`,
+> `Why-Alternatives:`, `Why-Agent:`, `Why-Session:`, `Why-Spec:`) on the commit message.
+> Because trailers are part of the commit, the reasoning travels with `git clone`,
+> `git fetch` and `git push` and appears in plain `git log` — there is no database and no
+> service. It is built for AI-assisted development, where the rationale for a change
+> otherwise disappears when the chat window closes.
+
+## Key facts
+
+- Language: Python 3.8+, a single file (`git_why.py`), zero dependencies. Requires git 2.32+.
+- Install: `pipx install git+https://github.com/maledadams/git-why`, or copy `git_why.py`
+  onto `PATH` as `git-why` so Git runs it as `git why`.
+- License: MIT. Author: Lucia Adams.
+
+## Commands
+
+- `git why <commit|path>` — show the recorded reasoning for a commit, or for the last
+  commit that changed a file (the `git blame` counterpart).
+- `git why log [range]` — timeline of recorded reasoning; filter with `--agent`,
+  `--session`, `--spec`, `--since`.
+- `git why export [range]` — newline-delimited JSON, one object per commit, for analysis.
+- `git why check [range]` — optional CI gate; fails when a substantial commit has no reason.
+- `git why commit -m "<subject>" -b "<reason>"` — commit with a `Why:` trailer; a thin
+  wrapper over `git commit --trailer`.
+- `git why init` — install a `commit-msg` hook. Default `why.strict=nudge` only prints a
+  one-line tip; `--enforce` blocks substantial reasonless commits; `--all` blocks every
+  non-merge commit; `--silent` installs the hook but stays quiet.
+- `git why agent-setup` — print an instruction block for an AI coding agent
+  (Claude Code, Cursor, Aider, …).
+
+## How it compares
+
+- vs `git blame`: blame answers who and when; `git why` answers why.
+- vs `git notes`: notes are not pushed or fetched by default and have no schema; `git why`
+  uses trailers, which are part of the commit and travel automatically.
+- vs Conventional Commits: that standardizes the commit *type* (`feat:`, `fix:`), not the
+  rationale behind the change.
+- vs Architecture Decision Records: ADRs capture project-level decisions in separate files;
+  `git why` captures per-commit reasoning on the commit.
+
+## Links
+
+- Repository: https://github.com/maledadams/git-why
+- README: https://github.com/maledadams/git-why#readme
+- Issues: https://github.com/maledadams/git-why/issues
+- Contributing: https://github.com/maledadams/git-why/blob/main/CONTRIBUTING.md

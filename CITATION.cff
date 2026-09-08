@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+title: git why
+message: "If you use this software, please cite it using this metadata."
+type: software
+authors:
+  - given-names: Lucia
+    family-names: Adams
+repository-code: "https://github.com/maledadams/git-why"
+url: "https://github.com/maledadams/git-why"
+abstract: >-
+  A Git subcommand that records why each commit exists, stored as native git
+  trailers on the commit message so the reasoning travels with clone, fetch and
+  push and appears in git log. Built for AI-assisted development, where the
+  rationale for a change otherwise disappears when the chat window closes.
+keywords:
+  - git
+  - git-trailers
+  - commit-message
+  - provenance
+  - ai-assisted-development
+  - developer-tools
+  - cli
+license: MIT
