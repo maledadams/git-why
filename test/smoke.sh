@@ -23,6 +23,9 @@ git config user.email t@example.com
 git config user.name Tester
 big() { printf '%s line %s\n' "$1" $(seq 1 40) > "$1"; git add "$1"; }
 
+# --- version ---------------------------------------------------------------
+gw --version | grep -qE "^git why [0-9]+\.[0-9]+" || fail "git why --version"
+
 # ---- default: nudge (never blocks) -------------------------------------
 gw init >/dev/null
 [ "$(git config --get why.strict)" = "nudge" ] || fail "default level is not nudge"
