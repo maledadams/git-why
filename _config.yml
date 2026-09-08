@@ -11,3 +11,4 @@ url: https://maledadams.github.io
 baseurl: /git-why
 plugins:
   - jekyll-seo-tag
+  - jekyll-sitemap
