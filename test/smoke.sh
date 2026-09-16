@@ -65,6 +65,9 @@ gw helper.py | grep -q "split out of core" || fail "git why <path>"
 gw log | grep -q "split out of core" || fail "git why log"
 gw log --agent claude | grep -q "split out of core" || fail "git why log --agent"
 gw log --agent nope | grep -q "no matching commits" || fail "git why log --agent filter"
+gw log --json | python3 -c "import sys,json; [json.loads(l) for l in sys.stdin if l.strip()]" \
+  || fail "git why log --json is not valid NDJSON"
+gw log --json | grep -q '"why_agent": "claude-sonnet-5"' || fail "log --json missing why_agent"
 gw export | python3 -c "import sys,json; [json.loads(l) for l in sys.stdin if l.strip()]" \
   || fail "git why export is not valid NDJSON"
 gw export | grep -q '"why_agent": "claude-sonnet-5"' || fail "export missing why_agent"
