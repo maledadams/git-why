@@ -247,6 +247,16 @@ def cmd_log(args):
             continue
         if args.with_reason and "Why" not in tr:
             continue
+
+        if args.json:
+            obj = {"commit": rec["short"], "subject": rec["subject"], "date": rec["date"]}
+            for k, v in tr.items():
+                key = "why" if k == "Why" else "why_" + k[4:].lower().replace("-", "_")
+                obj[key] = v
+            print(json.dumps(obj, ensure_ascii=False))
+            first = False
+            continue
+
         if not first:
             print()
         first = False
@@ -257,7 +267,7 @@ def cmd_log(args):
         meta = [f"{LABEL[k]}: {tr[k]}" for k in ("Why-Agent", "Why-Session", "Why-Spec") if tr.get(k)]
         if meta:
             print("          " + paint("   ".join(meta), "dim"))
-    if first:
+    if first and not args.json:
         print("no matching commits")
     return 0
 
@@ -445,6 +455,7 @@ def main():
     sp.add_argument("--session", help="only commits whose Why-Session contains this")
     sp.add_argument("--spec", help="only commits whose Why-Spec contains this")
     sp.add_argument("--with-reason", action="store_true", help="hide commits with no Why:")
+    sp.add_argument("--json", action="store_true", help="emit NDJSON (one object per commit) instead of the text view")
     sp.set_defaults(fn=cmd_log)
 
     sp = sub.add_parser("export", help="NDJSON of every recorded reason")
